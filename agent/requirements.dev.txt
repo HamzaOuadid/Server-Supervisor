@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+click
+pytest
+httpx
+psutil
+pylint
+coverage
+bandit

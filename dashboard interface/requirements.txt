@@ -1,0 +1,8 @@
+streamlit==1.29.0
+pandas
+requests
+matplotlib
+numpy
+protobuf==3.20.0
+altair==4.1.0
+click==8.0.4

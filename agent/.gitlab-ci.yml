@@ -1,0 +1,60 @@
+stages:          # List of stages for jobs, and their order of execution
+  - test
+  - linter
+  - coverage
+  - bandit
+  - delivery
+
+variables:
+    CI_REGISTRY_IMAGE: devops.telecomste.fr:5050/printerfaceadmin/2023-24/group8/agent:latest
+
+unit-test-job:   # This job runs in the test stage.
+  stage: test
+  image: devops.telecomste.fr:5050/printerfaceadmin/2023-24/group8/agent:test
+  script:
+    - make environment
+    - make run &
+    - make test
+
+linter-job:   # This job runs in the linter stage.
+  stage: linter
+  image: devops.telecomste.fr:5050/printerfaceadmin/2023-24/group8/agent:test
+  allow_failure: true
+  script:
+    - make environment
+    - pylint src --report=y --fail-under=7
+
+coverage-job:   # This job runs in the coverage stage.
+  stage: coverage
+  image: devops.telecomste.fr:5050/printerfaceadmin/2023-24/group8/agent:test
+  allow_failure: true
+  script:
+    - make environment
+    - coverage run -m pytest src/tests/test_api.py
+    - coverage report -m --fail-under=90
+
+bandit-job:   # This job runs in the bandit stage.
+  stage: bandit
+  image: devops.telecomste.fr:5050/printerfaceadmin/2023-24/group8/agent:test
+  allow_failure: true
+  script:
+    - make environment
+    - bandit --ini .bandit -r src
+
+delivery-job:   # This job builds and pushes an image of the service onto the project's gitlab container directory
+  stage: delivery
+  image: docker:19.03.12
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - name: docker:dind
+      entrypoint: ["env", "-u", "DOCKER_HOST"]
+      command: ["dockerd-entrypoint.sh"]
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"
+  only:
+    - main
